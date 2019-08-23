@@ -6,7 +6,7 @@
 - Virtualbox：6.0.4
 - Vagrant：2.2.3
 - Docker：
-- Etcd：
+- Etcd：3.3.1
 - Kube-apiserver：
 - Kube-controller-manager:
 - Kube-scheduler:
@@ -41,73 +41,68 @@
   可以配置 vagrantfile 来生成所需要的节点 如下:
 
   ```
+  x # -*- mode: ruby -*-# vi: set ft=ruby :MASTER_COUNT = 3Vagrant.configure("2") do |config|    config.ssh.insert_key = false     config.ssh.private_key_path = ["/home/humanbrain/vagrantbox_root/ssh_key","~/.vagrant.d/insecure_private_key"]    config.vm.provision "file", source: "/home/humanbrain/vagrantbox_root/ssh-key.pub", destination: "~/.ssh/authorized_keys"    config.vm.provision "shell", inline: <<-EOC        sudo sed -i "s/\#PasswordAuthentication yes/PasswordAuthentication yes/g" /etc/ssh/sshd_config        sudo sed -i "s/\#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config        sudo service sshd restart        sudo mkdir -p /root/.ssh/        sudo cp -r /home/vagrant/.ssh/authorized_keys /root/.ssh/authorized_keys  EOC      (1..MASTER_COUNT).each do |i|        config.vm.define "kmaster#{i}" do |node|                node.vm.network :private_network, ip: "192.168.98.#{30+i}"                node.vm.hostname = "kmaster#{i}"                #node.vm.provision :shell, inline: "cat /vagrant/ssh-key.pub >> .ssh/authorized_keys"        node.vm.provider "virtualbox" do |vb|                  vb.memory = 4096                  vb.cpus = 3                end        end      end          config.vm.define "knode1" do |node|                node.vm.network :private_network, ip: "192.168.98.20"                node.vm.hostname = "knode1"                node.vm.provider "virtualbox" do |vb|                  vb.memory = 6096                  vb.cpus = 3                 # vb.pci :bus => '0x06', :slot => '0x00', :function => '0x0'                 # vb.kvm_hidden = "true"        end        node.vm.provision "shell", inline: <<-SHELL        sudo yum install -y pciutils        rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm                SHELL	        end  config.vm.provision "shell", inline: <<-SHELL    yum install -y net-tools wget    sudo sudo sed -i "s/obsoletes=1/obsoletes=0/g" /etc/yum.conf  SHELLend
+  ```
   
-  # -*- mode: ruby -*-
-  # vi: set ft=ruby :
+  修改完毕 vagrantfile 记得重启虚拟机：
   
-  MASTER_COUNT = 3
+  `vagrant reload`
   
-  Vagrant.configure("2") do |config|
-    
-    config.ssh.insert_key = false 
-    
-    config.ssh.private_key_path = ["/home/humanbrain/vagrantbox_root/ssh_key","~/.vagrant.d/insecure_private_key"]
-    
-    config.vm.provision "file", source: "/home/humanbrain/vagrantbox_root/ssh-key.pub", destination: "~/.ssh/authorized_keys"
-    
-    config.vm.provision "shell", inline: <<-EOC
-      
-      sudo sed -i "s/\#PasswordAuthentication yes/PasswordAuthentication yes/g" /etc/ssh/sshd_config
-      
-      sudo sed -i "s/\#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
-      
-      sudo service sshd restart
-      
-      sudo mkdir -p /root/.ssh/
-      
-      sudo cp -r /home/vagrant/.ssh/authorized_keys /root/.ssh/authorized_keys
-    EOC
+  执行命令创建虚拟节点：
   
-        (1..MASTER_COUNT).each do |i|
-          config.vm.define "kmaster#{i}" do |node|
-                  node.vm.network :private_network, ip: "192.168.98.#{30+i}"
-                  node.vm.hostname = "kmaster#{i}"
-                  #node.vm.provision :shell, inline: "cat /vagrant/ssh-key.pub >> .ssh/authorized_keys"
-  		node.vm.provider "virtualbox" do |vb|
-                    vb.memory = 4096
-                    vb.cpus = 3
-                  end
-          end
-        end
-  
-    
-          config.vm.define "knode1" do |node|
-                  node.vm.network :private_network, ip: "192.168.98.20"
-                  node.vm.hostname = "knode1"
-                  node.vm.provider "virtualbox" do |vb|
-                    vb.memory = 6096
-                    vb.cpus = 3
-                   # vb.pci :bus => '0x06', :slot => '0x00', :function => '0x0'
-                   # vb.kvm_hidden = "true"
-  		end
-     		node.vm.provision "shell", inline: <<-SHELL
-  		sudo yum install -y pciutils
-  		rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
-  		
-  		SHELL
-          end
+  `vagrant up`
   
   
-    config.vm.provision "shell", inline: <<-SHELL
-      yum install -y net-tools wget
-      sudo sudo sed -i "s/obsoletes=1/obsoletes=0/g" /etc/yum.conf
-    SHELL
-  end
+
+###### 3.安装组件
+
+​	
+
+| 角色               | 安装组件名称                                                 |
+| ------------------ | ------------------------------------------------------------ |
+| master（管理节点） | Docker： Etcd：Kube-apiserver： Kube-controller-manager: Kube-scheduler: Flannel: Kubelet |
+| node1 （计算节点） | Docker： Etcd：Kube-apiserver： Kube-proxy: Flannel: Kubelet |
+| node2 （计算节点） | Docker： Etcd：Kube-apiserver： Kube-proxy: Flannel: Kubelet |
+
+
+
+- 安装etcd
+
+  ```
+  
+  yum install etcd #默认安装到 /usr/bin
+  
+  etcd --version #查看版本 验证是否成功
+  
+  systemd enable etcd #设置开机启动
+  
   
   ```
 
-  修改完毕 vagrantfile 记得重启虚拟机：
+  
 
-  `vagrant reload`
+- 安装docker 
+
+   
+
+  ```
+  Docker 要求 CentOS 系统的内核版本高于 3.10 ，查看本页面的前提条件来验证你的CentOS 版本是否支持 Docker 。
+  
+  uname -r #查看你当前的内核版本
+  
+  yum update # 更新yum源
+  
+  yum install docker #直接从yum源安装最新版本
+  
+  docker version #查看版本
+  ```
+
+  使用docker ps 查看时候会出现：Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
+
+  重启docker即可
+
+  `systemctl restart docker `
+
+  同样设置开机启动
 
   
