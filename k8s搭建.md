@@ -5,7 +5,7 @@
 - centos: CentOS Linux release 7.6.1810 (Core)
 - Virtualbox：6.0.4
 - Vagrant：2.2.3
-- Docker：
+- Docker：1.13.1
 - Etcd：3.3.1
 - Kube-apiserver：
 - Kube-controller-manager:
@@ -104,5 +104,62 @@
   `systemctl restart docker `
 
   同样设置开机启动
+
+  
+
+-  安装kubelet
+
+  1.我们需要在所有节点上安装 **kubelet**、**kubeadm** 和 **kubectl**，它们作用分别如下：
+
+  - **kubeadm**：用来初始化集群（**Cluster**）
+  - **kubelet**：运行在集群中的所有节点上，负责启动 **pod** 和 容器。
+  - **kubectl**：这个是 **Kubernetes** 命令行工具。通过 **kubectl** 可以部署和管理应用，查看各种资源，创建、删除和更新各种组件。
+
+  
+
+  2.配置镜像
+
+  ```
+  cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+  [kubernetes]
+  name=Kubernetes
+  baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64
+  enabled=1
+  gpgcheck=1
+  repo_gpgcheck=1
+  gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
+  EOF
+  ```
+
+  3.安装：
+
+  `yum install -y kubectl kubelet kubeadm`
+
+  4.设置开机启动：
+
+  `systemctl enable kubelet`
+
+  5.启动：
+
+  `systemctl start kubelet`
+
+  
+
+  **修改sysctl配置：**
+
+  ```
+  对于 RHEL/CentOS 7 系统，可以会由于 iptables 被绕过导致网络请求被错误的路由。所以还需执行如下命令保证 sysctl 配置中 net.bridge.bridge-nf-call-iptables 被设为1。
+  
+  
+  
+  （1）使用 vi 命令编辑相关文件：
+  	vi /etc/sysctl.conf
+  （2）在文件中添加如下内容后，保存退出。
+  	net.bridge.bridge-nf-call-ip6tables = 1
+  	net.bridge.bridge-nf-call-iptables = 1
+  	net.ipv4.ip_forward = 1
+  （3）最后执行如下命令即可：
+  	sysctl --system
+  ```
 
   
