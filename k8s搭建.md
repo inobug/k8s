@@ -15,7 +15,7 @@
 
 #### 安装
 
-###### 1.安装vagrant virtualbox (略)
+###### 一.安装vagrant virtualbox (略)
 
 [vagrant](https://www.vagrantup.com/)
 
@@ -23,7 +23,7 @@
 
 
 
-###### 2.安装centos 以及 集群节点的创建
+###### 二.安装centos 以及 集群节点的创建
 
 - 创建工作目录，我们新建一个目录当做项目目录的基准位置
 
@@ -54,7 +54,7 @@
   
   
 
-###### 3.安装组件
+###### 三.安装组件
 
 ​	
 
@@ -162,4 +162,32 @@
   	sysctl --system
   ```
 
+  **关闭swap**
+
+  1.执行命令将其关闭：
+
+  `swapoff -a`
+
+  2.编辑/etc/fstab 文件，机器重启后swap不会自动打开
+
+  ```
+  vi /etc/fstab
   
+  
+  将 /dev/mapper/centos-swap swap swap default 0 0 这一行前面加个 # 号将其注释掉。
+  
+  ```
+
+  
+
+###### 四.Master节点的安装配
+
+​	1.初始化Master
+
+  - 我们在 **Master** 上执行如下命令进行初始化：
+
+    **注意**：**--pod-network-cidr=10.244.0.0/16** 是 **k8s** 的网络插件所需要用到的配置信息，用来给 **node** 分配子网段。然后我们这边用到的网络插件是 **flannel**，就是这么配。
+
+    `kubeadm init --pod-network-cidr=10.244.0.0/16`
+
+    
